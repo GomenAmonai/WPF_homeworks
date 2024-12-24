@@ -1,0 +1,137 @@
+using System;
+using System.IO;
+using System.Windows.Forms;
+
+namespace TextEditorApp
+{
+    public partial class MainForm : Form
+    {
+        private string currentFileName; // Имя текущего файла
+
+        public MainForm()
+        {
+            InitializeComponent();
+            InitializeMenu();
+        }
+
+        private void InitializeMenu()
+        {
+            // Создаем меню
+            var menuStrip = new MenuStrip();
+
+            var fileMenu = new ToolStripMenuItem("File");
+
+            var newMenuItem = new ToolStripMenuItem("New", null, NewFile);
+            var openMenuItem = new ToolStripMenuItem("Open", null, OpenFile);
+            var saveMenuItem = new ToolStripMenuItem("Save", null, SaveFile);
+            var saveAsMenuItem = new ToolStripMenuItem("Save As", null, SaveFileAs);
+
+            fileMenu.DropDownItems.Add(newMenuItem);
+            fileMenu.DropDownItems.Add(openMenuItem);
+            fileMenu.DropDownItems.Add(saveMenuItem);
+            fileMenu.DropDownItems.Add(saveAsMenuItem);
+
+            menuStrip.Items.Add(fileMenu);
+
+            this.MainMenuStrip = menuStrip;
+            this.Controls.Add(menuStrip);
+
+            // Создаем текстовое поле
+            var textBox = new TextBox
+            {
+                Multiline = true,
+                Dock = DockStyle.Fill,
+                ScrollBars = ScrollBars.Both,
+                Font = new System.Drawing.Font("Consolas", 12)
+            };
+            textBox.Name = "MainTextBox";
+            this.Controls.Add(textBox);
+        }
+
+        private TextBox MainTextBox => this.Controls["MainTextBox"] as TextBox;
+
+        private void NewFile(object sender, EventArgs e)
+        {
+            if (!PromptToSave()) return;
+
+            MainTextBox.Text = string.Empty;
+            currentFileName = null;
+            this.Text = "Untitled - Text Editor";
+        }
+
+        private void OpenFile(object sender, EventArgs e)
+        {
+            if (!PromptToSave()) return;
+
+            using (var openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*";
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    currentFileName = openFileDialog.FileName;
+                    MainTextBox.Text = File.ReadAllText(currentFileName);
+                    this.Text = $"{Path.GetFileName(currentFileName)} - Text Editor";
+                }
+            }
+        }
+
+        private void SaveFile(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(currentFileName))
+            {
+                SaveFileAs(sender, e);
+            }
+            else
+            {
+                File.WriteAllText(currentFileName, MainTextBox.Text);
+            }
+        }
+
+        private void SaveFileAs(object sender, EventArgs e)
+        {
+            using (var saveFileDialog = new SaveFileDialog())
+            {
+                saveFileDialog.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*";
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    currentFileName = saveFileDialog.FileName;
+                    File.WriteAllText(currentFileName, MainTextBox.Text);
+                    this.Text = $"{Path.GetFileName(currentFileName)} - Text Editor";
+                }
+            }
+        }
+
+        private bool PromptToSave()
+        {
+            if (!string.IsNullOrEmpty(MainTextBox.Text))
+            {
+                var result = MessageBox.Show(
+                    "Do you want to save changes?",
+                    "Text Editor",
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    SaveFile(this, EventArgs.Empty);
+                }
+                else if (result == DialogResult.Cancel)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new MainForm());
+        }
+    }
+}
