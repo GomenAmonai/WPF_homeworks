@@ -1,0 +1,137 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace InstallerApp
+{
+    public partial class InstallerForm : Form
+    {
+        private InstallationData data = new InstallationData();
+        private int currentStep = 0;
+
+        public InstallerForm()
+        {
+            InitializeComponent();
+            InitializePanels();
+            ShowStep(0);
+        }
+
+        private void InitializePanels()
+        {
+            panelFeatures.Visible = false;
+            panelPath.Visible = false;
+            panelOptions.Visible = false;
+            panelSummary.Visible = false;
+            panelProgress.Visible = false;
+        }
+
+        private void ShowStep(int step)
+        {
+            InitializePanels();
+
+            switch (step)
+            {
+                case 0:
+                    panelFeatures.Visible = true;
+                    break;
+                case 1:
+                    panelPath.Visible = true;
+                    break;
+                case 2:
+                    panelOptions.Visible = true;
+                    break;
+                case 3:
+                    panelSummary.Visible = true;
+                    UpdateSummary();
+                    break;
+                case 4:
+                    panelProgress.Visible = true;
+                    StartInstallation();
+                    break;
+            }
+        }
+
+        private void UpdateSummary()
+        {
+            lblSummary.Text = $"Features: {string.Join(", ", data.SelectedFeatures)}\n" +
+                              $"Path: {data.InstallationPath}\n" +
+                              $"Newsletter: {(data.SubscribeToNewsletter ? "Yes" : "No")}\n" +
+                              $"Shortcut: {(data.CreateDesktopShortcut ? "Yes" : "No")}\n" +
+                              $"Run after installation: {(data.RunAfterInstallation ? "Yes" : "No")}";
+        }
+
+        private async void StartInstallation()
+        {
+            progressBar.Value = 0;
+            for (int i = 0; i <= 100; i += 10)
+            {
+                await Task.Delay(500);
+                progressBar.Value = i;
+            }
+            MessageBox.Show("Installation completed!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void btnNext_Click(object sender, EventArgs e)
+        {
+            SaveCurrentStepData();
+
+            if (currentStep < 4)
+            {
+                currentStep++;
+                ShowStep(currentStep);
+            }
+        }
+
+        private void btnBack_Click(object sender, EventArgs e)
+        {
+            if (currentStep > 0)
+            {
+                currentStep--;
+                ShowStep(currentStep);
+            }
+        }
+
+        private void SaveCurrentStepData()
+        {
+            switch (currentStep)
+            {
+                case 0: 
+                    data.SelectedFeatures.Clear();
+                    if (checkBoxFeature1.Checked) data.SelectedFeatures.Add("Feature 1");
+                    if (checkBoxFeature2.Checked) data.SelectedFeatures.Add("Feature 2");
+                    if (checkBoxFeature3.Checked) data.SelectedFeatures.Add("Feature 3");
+                    break;
+
+                case 1: 
+                    data.InstallationPath = textBoxPath.Text;
+                    break;
+
+                case 2: 
+                    data.SubscribeToNewsletter = checkBoxNewsletter.Checked;
+                    data.CreateDesktopShortcut = checkBoxShortcut.Checked;
+                    data.RunAfterInstallation = checkBoxRun.Checked;
+                    break;
+            }
+        }
+
+        private void btnBrowse_Click(object sender, EventArgs e)
+        {
+            using (var folderDialog = new FolderBrowserDialog())
+            {
+                if (folderDialog.ShowDialog() == DialogResult.OK)
+                {
+                    textBoxPath.Text = folderDialog.SelectedPath;
+                }
+            }
+        }
+    }
+
+    public class InstallationData
+    {
+        public List<string> SelectedFeatures { get; set; } = new List<string>();
+        public string InstallationPath { get; set; } = @"C:\Program Files\MyProgram";
+        public bool SubscribeToNewsletter { get; set; }
+        public bool CreateDesktopShortcut { get; set; }
+        public bool RunAfterInstallation { get; set; }
+    }
+}
