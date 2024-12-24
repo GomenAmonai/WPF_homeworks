@@ -1,0 +1,79 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace AppleDrawingApp
+{
+    public class MainForm : Form
+    {
+        public MainForm()
+        {
+            this.Text = "Рисование яблока";
+            this.DoubleBuffered = true; 
+            this.Resize += (s, e) => this.Invalidate(); 
+            this.Paint += MainForm_Paint;
+        }
+
+        private void MainForm_Paint(object sender, PaintEventArgs e)
+        {
+            var graphics = e.Graphics;
+            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+            
+            int formWidth = this.ClientSize.Width;
+            int formHeight = this.ClientSize.Height;
+
+            
+            int squareSize = Math.Min(formWidth, formHeight);
+            int offsetX = (formWidth - squareSize) / 2;
+            int offsetY = (formHeight - squareSize) / 2;
+
+            
+            var appleRect = new Rectangle(offsetX, offsetY, squareSize, squareSize);
+
+            DrawApple(graphics, appleRect);
+        }
+
+        private void DrawApple(Graphics g, Rectangle bounds)
+        {
+            
+            var appleBrush = new SolidBrush(Color.Red);
+            var appleEllipse = new Rectangle(
+                bounds.X + bounds.Width / 8,
+                bounds.Y + bounds.Height / 4,
+                bounds.Width * 3 / 4,
+                bounds.Height / 2
+            );
+            g.FillEllipse(appleBrush, appleEllipse);
+
+            // Лист
+            var leafBrush = new SolidBrush(Color.Green);
+            var leafPath = new System.Drawing.Drawing2D.GraphicsPath();
+            leafPath.AddBezier(
+                bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 8, // Начало
+                bounds.X + bounds.Width / 2 + bounds.Width / 8, bounds.Y, // Контроль 1
+                bounds.X + bounds.Width / 2 - bounds.Width / 8, bounds.Y, // Контроль 2
+                bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 8 // Конец
+            );
+            g.FillPath(leafBrush, leafPath);
+
+            // Хвост
+            var stemBrush = new SolidBrush(Color.Brown);
+            var stemRect = new Rectangle(
+                bounds.X + bounds.Width * 7 / 16,
+                bounds.Y + bounds.Height / 4,
+                bounds.Width / 8,
+                bounds.Height / 8
+            );
+            g.FillRectangle(stemBrush, stemRect);
+        }
+
+        [STAThread]
+        public static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new MainForm());
+        }
+    }
+}
