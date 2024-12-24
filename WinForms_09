@@ -1,1 +1,218 @@
+using System;
+using System.Globalization;
+using System.IO;
+using System.Threading;
+using System.Windows.Forms;
+
+namespace MultilingualTextEditor
+{
+    public partial class MainForm : Form
+    {
+        private string currentFileName; // Имя текущего файла
+
+        public MainForm()
+        {
+            InitializeComponent();
+            InitializeMenu();
+            ApplyLocalization();ч        }
+
+        private void InitializeMenu()
+        {
+            // Создаем меню
+            var menuStrip = new MenuStrip();
+
+            var fileMenu = new ToolStripMenuItem();
+            fileMenu.Name = "FileMenu";
+
+            var newMenuItem = new ToolStripMenuItem();
+            newMenuItem.Name = "NewMenuItem";
+            newMenuItem.Click += NewFile;
+
+            var openMenuItem = new ToolStripMenuItem();
+            openMenuItem.Name = "OpenMenuItem";
+            openMenuItem.Click += OpenFile;
+
+            var saveMenuItem = new ToolStripMenuItem();
+            saveMenuItem.Name = "SaveMenuItem";
+            saveMenuItem.Click += SaveFile;
+
+            var saveAsMenuItem = new ToolStripMenuItem();
+            saveAsMenuItem.Name = "SaveAsMenuItem";
+            saveAsMenuItem.Click += SaveFileAs;
+
+            fileMenu.DropDownItems.Add(newMenuItem);
+            fileMenu.DropDownItems.Add(openMenuItem);
+            fileMenu.DropDownItems.Add(saveMenuItem);
+            fileMenu.DropDownItems.Add(saveAsMenuItem);
+
+            var languageMenu = new ToolStripMenuItem();
+            languageMenu.Name = "LanguageMenu";
+
+            var englishMenuItem = new ToolStripMenuItem("English", null, (s, e) => ChangeLanguage("en"));
+            var russianMenuItem = new ToolStripMenuItem("Русский", null, (s, e) => ChangeLanguage("ru"));
+
+            languageMenu.DropDownItems.Add(englishMenuItem);
+            languageMenu.DropDownItems.Add(russianMenuItem);
+
+            menuStrip.Items.Add(fileMenu);
+            menuStrip.Items.Add(languageMenu);
+
+            this.MainMenuStrip = menuStrip;
+            this.Controls.Add(menuStrip);
+
+            // Создаем текстовое поле
+            var textBox = new TextBox
+            {
+                Multiline = true,
+                Dock = DockStyle.Fill,
+                ScrollBars = ScrollBars.Both,
+                Font = new System.Drawing.Font("Consolas", 12)
+            };
+            textBox.Name = "MainTextBox";
+            this.Controls.Add(textBox);
+        }
+
+        private TextBox MainTextBox => this.Controls["MainTextBox"] as TextBox;
+
+        private void ApplyLocalization()
+        {
+            var fileMenu = this.MainMenuStrip.Items["FileMenu"] as ToolStripMenuItem;
+            var languageMenu = this.MainMenuStrip.Items["LanguageMenu"] as ToolStripMenuItem;
+
+            fileMenu.Text = Resources.ResourceManager.GetString("FileMenu", CultureInfo.CurrentUICulture);
+            languageMenu.Text = Resources.ResourceManager.GetString("LanguageMenu", CultureInfo.CurrentUICulture);
+
+            fileMenu.DropDownItems["NewMenuItem"].Text = Resources.ResourceManager.GetString("NewMenuItem", CultureInfo.CurrentUICulture);
+            fileMenu.DropDownItems["OpenMenuItem"].Text = Resources.ResourceManager.GetString("OpenMenuItem", CultureInfo.CurrentUICulture);
+            fileMenu.DropDownItems["SaveMenuItem"].Text = Resources.ResourceManager.GetString("SaveMenuItem", CultureInfo.CurrentUICulture);
+            fileMenu.DropDownItems["SaveAsMenuItem"].Text = Resources.ResourceManager.GetString("SaveAsMenuItem", CultureInfo.CurrentUICulture);
+
+            this.Text = Resources.ResourceManager.GetString("MainFormTitle", CultureInfo.CurrentUICulture);
+        }
+
+        private void ChangeLanguage(string cultureCode)
+        {
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo(cultureCode);
+            ApplyLocalization();
+        }
+
+        private void NewFile(object sender, EventArgs e)
+        {
+            if (!PromptToSave()) return;
+
+            MainTextBox.Text = string.Empty;
+            currentFileName = null;
+            ApplyLocalization(); // Обновляем заголовок
+        }
+
+        private void OpenFile(object sender, EventArgs e)
+        {
+            if (!PromptToSave()) return;
+
+            using (var openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*";
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    currentFileName = openFileDialog.FileName;
+                    MainTextBox.Text = File.ReadAllText(currentFileName);
+                    ApplyLocalization();
+                }
+            }
+        }
+
+        private void SaveFile(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(currentFileName))
+            {
+                SaveFileAs(sender, e);
+            }
+            else
+            {
+                File.WriteAllText(currentFileName, MainTextBox.Text);
+            }
+        }
+
+        private void SaveFileAs(object sender, EventArgs e)
+        {
+            using (var saveFileDialog = new SaveFileDialog())
+            {
+                saveFileDialog.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*";
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    currentFileName = saveFileDialog.FileName;
+                    File.WriteAllText(currentFileName, MainTextBox.Text);
+                }
+            }
+        }
+
+        private bool PromptToSave()
+        {
+            if (!string.IsNullOrEmpty(MainTextBox.Text))
+            {
+                var result = MessageBox.Show(
+                    Resources.ResourceManager.GetString("PromptSaveMessage", CultureInfo.CurrentUICulture),
+                    Resources.ResourceManager.GetString("PromptSaveTitle", CultureInfo.CurrentUICulture),
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    SaveFile(this, EventArgs.Empty);
+                }
+                else if (result == DialogResult.Cancel)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new MainForm());
+        }
+    }
+}
+
+
+
+
+//Файлы с языками я мог бы прикрепить в отедлеьном репозитории но остаавлю их здесь
+
+Resources.resx
+
+FileMenu: File
+LanguageMenu: Language
+NewMenuItem: New
+OpenMenuItem: Open
+SaveMenuItem: Save
+SaveAsMenuItem: Save As
+MainFormTitle: Text Editor
+PromptSaveMessage: Do you want to save changes?
+PromptSaveTitle: Save Changes
+
+Resources.ru.resx:
+FileMenu: Файл
+LanguageMenu: Язык
+NewMenuItem: Новый
+OpenMenuItem: Открыть
+SaveMenuItem: Сохранить
+SaveAsMenuItem: Сохранить как
+MainFormTitle: Текстовый редактор
+PromptSaveMessage: Вы хотите сохранить изменения?
+PromptSaveTitle: Сохранить изменения
+
+
+
+
+
+
+
 
